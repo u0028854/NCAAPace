@@ -29,7 +29,7 @@ workflows:
       - build:
         filters:
             branches:
-                only:
+                ignore:
                   - master
       - node/test:
           # This is the node version to use for the `cimg/node` tag
