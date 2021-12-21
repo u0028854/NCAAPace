@@ -19,10 +19,6 @@ jobs:
       - checkout
       - run: echo "this is the build job"
       - run: exit 0
-    filters:
-      branches:
-        ignore:
-          - master
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -41,3 +37,6 @@ workflows:
           pkg-manager: npm
           requires: 
             - build
+          filters:
+            branches:
+              only: /master
