@@ -1,15 +1,87 @@
-'use strict';
+const fs = require('fs');
+const cheerio = require('cheerio');
+const got = require('got');
+const path = require('path');
+const fileName = path.resolve('C:\\Users\\Corey\\Desktop\\', 'NCAAPace.csv');
 
-var unirest = require("unirest");
-var fs = require("fs");
+let url= 'http://www.cfbstats.com/2021/leader/national/team/offense/split01/category10/sort01.html';
 
-class GameData {
-    constructor(){
-        this._timeOfPossession = 0;
-        this._rushingAttempts = 0;
-        this._passingAttempts = 0
+got(url).then(response => {
+    let teamData = new Map();
+    let webPage = cheerio.load(response.body);
+
+    let teamRows = webPage('td.team-name').parent();
+
+    for (let x = 0; x < teamRows.length; x++){
+        let temp = new TeamData(teamRows[x].children[3].children[0].children[0].data, teamRows[x].children[11].children[0].data);
+        teamData.set(temp.teamName, temp);
     }
 
+    url = 'http://www.cfbstats.com/2021/leader/national/team/offense/split01/category15/sort01.html';
+
+    got(url).then(response => {
+        webPage = cheerio.load(response.body);
+
+        teamRows = webPage('td.team-name').parent();
+
+        for (let x = 0; x < teamRows.length; x++){
+            let tempTeam = teamData.get(teamRows[x].children[3].children[0].children[0].data);
+            tempTeam.timeOfPossession = calculateSeconds(teamRows[x].children[7].children[0].data);
+            teamData.set(tempTeam.teamName, tempTeam);
+        }
+
+        fs.writeFileSync(fileName, buildFileOutput(teamData), (err) => {
+            if (err) console.log(err);
+        });
+    });
+}).catch(err => {
+    console.log(err);
+});
+
+function buildFileOutput(teamDataMap){
+    let retVal = 'Team Name, Time Per Play\n';
+
+    let iterator = teamDataMap.values();
+
+    let tempIterator = iterator.next();
+
+    while(!tempIterator.done){
+        let tempTeam = tempIterator.value;
+
+        retVal += tempTeam.teamFileOutput();
+
+        tempIterator = iterator.next();
+    }
+
+    return retVal;
+}
+
+function calculateSeconds(timeOfPoss){
+    let possTime = timeOfPoss.split(':');
+
+    if(possTime.length == 2){
+        return (60 * Number(possTime[0]) + Number(possTime[1]));
+    }
+    else{
+        console.log('Malformed Time of Possession');
+    }
+}
+
+class TeamData {
+    constructor(name, plays){
+        this._teamName = name;
+        this._timeOfPossession = 0;
+        this._totalPlays = plays;
+    }
+
+    get teamName(){
+        return this._teamName;
+    }
+
+    set teamName(x){
+        this._teamName = x;
+    }
+    
     get timeOfPossession(){
         return this._timeOfPossession;
     }
@@ -18,149 +90,19 @@ class GameData {
         this._timeOfPossession = x;
     }
 
-    get rushingAttempts(){
-        return this._rushingAttempts;
+    get totalPlays(){
+        return this._totalPlays;
     }
 
-    set rushingAttempts(x){
-        this._rushingAttempts = x;
+    set totalPlays(x){
+        this._totalPlays = x;
     }
 
-    get passingAttempts(){
-        return this._passingAttempts;
+    timePerPlay(){
+        return Math.round(100* Number(this._timeOfPossession) / Number(this._totalPlays)) / 100;
     }
 
-    set passingAttempts(x){
-        this._passingAttempts = x;
-    }
-    
-    getTimePerPlay(){
-        return parseInt(this._timeOfPossession) / (parseInt(this._rushingAttempts) + parseInt(this._passingAttempts));
+    teamFileOutput(){
+        return this._teamName + ',' + this.timePerPlay() + '\n';
     }
 }
-
-function TeamData(teamName) {
-    this.teamName = teamName.replace("&","%26");
-    this.gameData = [];
-
-    this.addGame = function(topString, rushingAttempts, passAttString){
-        let tempGame = new GameData();
-        
-        tempGame.timeOfPossession = this.parsePossession(topString);
-        tempGame.rushingAttempts = rushingAttempts;
-        tempGame.passingAttempts = this.parsePassingAtts(passAttString);
-        
-        this.gameData.push(tempGame);
-    };
-
-    this.parsePossession = function(topString){
-        if(topString === undefined){
-            return 0;
-        }
-        
-        var temp = topString.split(":");
-        return ((60 * parseInt(temp[0])) + parseInt(temp[1])); 
-    };
-
-    this.parsePassingAtts = function(passAttString){
-        if(passAttString === undefined){
-            return 0;
-        }
-
-        return passAttString.split("-")[1];
-    };
-
-    this.getAllTimePerPlay = function(){
-        let totalPlays = 0;
-        let totalTOP = 0;
-
-        for(let i = 0; i < this.gameData.length; i++){
-            totalPlays += parseInt(this.gameData[i].rushingAttempts);
-            totalPlays += parseInt(this.gameData[i].passingAttempts);
-            totalTOP += parseInt(this.gameData[i].timeOfPossession);
-        }
-
-        return totalTOP / totalPlays;
-    };
-
-    this.formatTimeCSV = function(){
-        let retVal = this.teamName + "," + Math.round(100*this.getAllTimePerPlay())/100;
-        
-        for(let i = 0; i < this.gameData.length; i++){
-            retVal += ("," + Math.round(100*this.gameData[i].getTimePerPlay())/100);
-        }
-
-        return retVal;
-    }
-}
-
-var fileName = "NCAAPace.csv";
-var season = "2019";
-var req = unirest.get("https://api.collegefootballdata.com/teams/fbs?year=" + season);
-
-req.end(function(res) {
-    if (res.error) throw new Error(res.error);
-
-    fs.unlink(fileName, function (err) {
-        if (err) throw err;
-        // if no error, file has been deleted successfully
-        
-        fs.appendFileSync(fileName, "Team Name, Total Pace, Game 1, Game 2, Game 3, Game 4, Game 5, Game 6, Game 7, Game 8, Game 9, Game 10, Game 11, Game 12" + "\n", (err) => {
-            if (err) console.log(err);
-        });
-    });
-
-    let jsonArray = res.toJSON().body;
-    let teamArray = [];
-
-    for (let i = 0; i < jsonArray.length; i++){
-        teamArray.push(new TeamData(jsonArray[i].school));
-    }
-
-    for(let i = 0; i < teamArray.length; i++){
-        let req2 = unirest.get("https://api.collegefootballdata.com/games/teams?year=" + season +
-            "&seasonType=regular&team=" + teamArray[i].teamName);
-        
-        req2.end(function(res2) {
-            if (res2.error) throw new Error(res2.error);
-
-            jsonArray = res2.toJSON().body;
-
-            for (let j = 0; j < jsonArray.length; j++){
-                let tempTeamJSON = jsonArray[j].teams[0];
-
-                if(tempTeamJSON.school != teamArray[i].teamName){
-                    tempTeamJSON = jsonArray[j].teams[1];
-                }
-
-                tempTeamJSON = tempTeamJSON.stats;
-
-                let topString;
-                let rushingAttempts;
-                let passAttString;
-
-                for (let k = 0; k < tempTeamJSON.length; k++){
-                    
-
-                    if(tempTeamJSON[k].category === "possessionTime"){
-                        topString = tempTeamJSON[k].stat;
-                    }
-                    else if(tempTeamJSON[k].category === "rushingAttempts"){
-                        rushingAttempts = tempTeamJSON[k].stat;
-                    }
-                    else if(tempTeamJSON[k].category === "completionAttempts"){
-                        passAttString = tempTeamJSON[k].stat;
-                    }
-                }
-
-                teamArray[i].addGame(topString, rushingAttempts, passAttString);
-            }
-
-            fs.appendFileSync(fileName, teamArray[i].formatTimeCSV() + "\n", (err) => {
-                if (err) console.log(err);
-            });
-        });
-    }
-
-    // Testimg
-});
