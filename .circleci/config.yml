@@ -18,6 +18,7 @@ jobs:
     steps:
       - checkout
       - run: echo "this is the build job"
+      - run: exit 1
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -33,3 +34,5 @@ workflows:
           version: '16.10'
           # If you are using yarn, change the line below from "npm" to "yarn"
           pkg-manager: npm
+          requires: 
+            - build
