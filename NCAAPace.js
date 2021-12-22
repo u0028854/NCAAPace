@@ -59,7 +59,7 @@ function buildFileOutput(teamDataMap){
 function calculateSeconds(timeOfPoss){
     let possTime = timeOfPoss.split(':');
 
-    if(possTime.length == 2){
+    if(possTime.length === 2){
         return (60 * Number(possTime[0]) + Number(possTime[1]));
     }
     else{
