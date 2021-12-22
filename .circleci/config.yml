@@ -34,11 +34,6 @@ jobs:
       - store_artifacts:
           path: static-analysis.txt
   build:
-    #docker:
-    #  - image: cimg/<language>:<version TAG>
-    #    auth:
-    #      username: mydockerhub-user
-    #      password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
     machine:
       image: ubuntu-2004:202010-01
     steps:
