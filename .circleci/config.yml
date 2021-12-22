@@ -12,9 +12,9 @@ jobs:
       - image: circleci/openjdk:latest
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - pmd-v6.41.0
+      #- restore_cache:
+      #    keys:
+      #      - pmd-v6.41.0
       - run:
           name: Install PMD
           command: |
@@ -23,10 +23,10 @@ jobs:
                   unzip pmd-bin-6.41.0.zip
                   rm pmd-bin-6.41.0.zip
               fi
-      - save_cache:
-          key: pmd-v6.41.0
-          paths:
-              - pmd-bin-6.41.0
+      #- save_cache:
+      #    key: pmd-v6.41.0
+      #    paths:
+      #        - pmd-bin-6.41.0
       - run:
           name: Run Static Analysis
           command: |
