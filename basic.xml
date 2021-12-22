@@ -15,7 +15,7 @@
     <rule ref="category/ecmascript/errorprone.xml/InnaccurateNumericLiteral" deprecated="true" />
 
     <rule ref="category/ecmascript/bestpractices.xml/ConsistentReturn" deprecated="true" />
-    <rule ref="category/ecmascript/bestpractices.xml/GlobalVariable" deprecated="true" />
+    <!--<rule ref="category/ecmascript/bestpractices.xml/GlobalVariable" deprecated="true" />-->
     <rule ref="category/ecmascript/bestpractices.xml/ScopeForInVariable" deprecated="true" />
     <rule ref="category/ecmascript/bestpractices.xml/UseBaseWithParseInt" deprecated="true" />
 </ruleset>
